@@ -12,7 +12,7 @@ use log::{debug, info, warn, error};
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
 trait send_data { 
-    fn send_data (&self, param_name: &str, param_arg: Vec<OscType>);
+    fn send_data(&self, param_name: &str, param_arg: Vec<OscType>);
 }
 
 #[derive(Debug)]
@@ -23,16 +23,15 @@ pub struct Client {
 }
 
 impl send_data for Client {
-
     fn send_data(&self, param_name: &str, param_arg: Vec<OscType>) {
-        // Create OSC/1.0 Message buffer with parameter name and parameter value/arg
+        // create OSC/1.0 Message buffer with parameter name and parameter value/arg
         let msg_buf = encoder::encode(&OscPacket::Message(OscMessage {
             addr: param_name.to_string(),
             args: param_arg,
         }))
         .unwrap();
 
-        // Sends the encoded Message buffer to VRChat on port 9000
+        // sends the encoded Message buffer to VRChat on port 9000
         self.sock.send_to(&msg_buf, self.address).unwrap();
     }
 }
@@ -62,10 +61,19 @@ impl Client {
         self.send_data(&param_name, vec![param_arg])
     }
 
+    // jump takes ints 1 and 0 -> 1 is activated 0 is reset
     pub fn input_jump(&self) {
         let param_name = format!("/input/Jump");
-        let param_arg: OscType = OscType::Bool(false); // placeholder variable FIX LATER !!!!!!
-        self.send_data(&param_name, vec![param_arg])
+        self.send_data(&param_name, vec![OscType::Int(1)]); // activate jump
+        cli::sleep(10);
+        self.send_data(&param_name, vec![OscType::Int(0)]) // reset jump
+    }
+
+    // run takes ints 1 and 0 -> 1 is activated 0 is inactive
+    pub fn input_run(&self, toggle: i32) {
+        let param_name = format!("/input/Run");
+        let param_arg: OscType = OscType::Int(toggle);
+        self.send_data(&param_name, vec![param_arg]) // 1 = running | 0 = walking
     }
 
     pub fn chatbox_message(&self, message: &str) { 
@@ -90,27 +98,61 @@ impl Client {
         self.send_data(param_name, param_arg)
     }
 
+    pub fn input_init(&self) {
+        self.send_data("/input/Jump", vec![OscType::Int(0)]); // init jump to 0
+        cli::sleep(10);
+        self.send_data("/input/Run", vec![OscType::Int(0)]); // init run to 0
+
+        debug!("Initialized jump and run inputs")
+    }
+
+    // this is all super hardcoded, its just a demonstration and its kinda cool in public lobbies
     pub fn test_actions(&self) {
         // moving left for 1750ms = 360 degrees
 
-        self.chatbox_message("Calibrating movement..."); // no it does not calibrate movement lol
+        // ensure that you can run and jump before moving
+        self.input_init();
 
+        self.chatbox_message("calibrating movement..."); // no it does not calibrate movement lol
+
+        cli::sleep(500);
+
+        self.chatbox_message("calibrating movement -> Left");
+        // 360 degrees left
         self.input_look("Left", true);
-
         self.input_move("Forward", true);
         cli::sleep(1775);
         self.input_move("Forward", false);
-
         self.input_look("Left", false);
 
+        self.chatbox_message("calibrating movement -> Right");
+        // 360 degrees right
         self.input_look("Right", true);
-
         self.input_move("Backward", true);
         cli::sleep(1775);
         self.input_move("Backward", false);
-
         self.input_look("Right", false);
 
+        self.chatbox_message("calibrating movement -> Forward");
+        self.input_run(1);
+        self.input_move("Forward", true);
+        cli::sleep(1000);
+        self.input_move("Forward", false);
+        self.input_run(0);
+
+        self.chatbox_message("calibrating movement -> Backward");
+        self.input_run(1);
+        self.input_move("Backward", true);
+        cli::sleep(1000);
+        self.input_move("Backward", false);
+        self.input_run(0);
+
+        cli::sleep(100);
+        self.chatbox_message("calibrating movement -> Jumping");
+        self.input_jump();
+        cli::sleep(500);
+        self.input_jump();
+        cli::sleep(500);
         self.input_jump();
 
         self.chatbox_message("bless up 🙏");

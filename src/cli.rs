@@ -13,10 +13,12 @@ pub fn init_logger(log_level: &'static str) {
     env_logger::init_from_env(env);
 }
 
+// sleeps in ms time
 pub fn sleep (ms: u64) {
     thread::sleep(time::Duration::from_millis(ms));
 }
 
+// returns HH:MM:SS time as a String
 pub fn string_system_time() -> String {
     let now = chrono::offset::Local::now();
     let dt: DateTime<Local> = now.clone().into();
@@ -24,6 +26,7 @@ pub fn string_system_time() -> String {
     dt.format("%H:%M:%S").to_string()
 }
 
+// thanks https://stackoverflow.com/questions/38461429/how-can-i-truncate-a-string-to-have-at-most-n-characters
 pub fn truncate(s: &str, max_chars: usize) -> &str {
     match s.char_indices().nth(max_chars) {
         None => s,

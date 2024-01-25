@@ -14,7 +14,7 @@ fn main() {
     vrc.test_actions();
 
     loop {
-        vrc.chatbox_message("rico's bs -> socket connection works thank god 🙏");
+        vrc.chatbox_message("rico's bs -> testing message connection, sorry if messages are annoying 🙏");
 
         cli::sleep(20000);
     }
