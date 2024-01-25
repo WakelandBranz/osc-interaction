@@ -1,7 +1,7 @@
 use env_logger::Env;
 
 use std::{thread, time};
-use chrono::{DateTime,Local};
+use chrono::{DateTime, Local, Timelike};
 
 
 // The available log levels, in increasing order of severity, are "trace," "debug," "info," "warn," and "error."

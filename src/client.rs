@@ -4,14 +4,14 @@ extern crate rosc;
 use crate::cli;
 
 //rosc encoder
-use rosc::{encoder, OscArray};
+use rosc::encoder;
 // rosc types
 use rosc::{OscMessage, OscPacket, OscType};
 
 use log::{debug, info, warn, error};
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
-trait send_data { 
+trait SendData { 
     fn send_data(&self, param_name: &str, param_arg: Vec<OscType>);
 }
 
@@ -22,7 +22,7 @@ pub struct Client {
     sock: UdpSocket
 }
 
-impl send_data for Client {
+impl SendData for Client {
     fn send_data(&self, param_name: &str, param_arg: Vec<OscType>) {
         // create OSC/1.0 Message buffer with parameter name and parameter value/arg
         let msg_buf = encoder::encode(&OscPacket::Message(OscMessage {
@@ -47,6 +47,11 @@ impl Client {
         }
     }
 
+    // tests if game socket connection is open
+    pub fn test_socket(&self) -> bool {
+        todo!();
+    }
+
     // directions are 'Forward', 'Backward', 'Left', 'Right'
     pub fn input_move(&self, direction: &str, toggle: bool) {
         let param_name = format!("/input/Move{}", direction);
@@ -65,7 +70,7 @@ impl Client {
     pub fn input_jump(&self) {
         let param_name = format!("/input/Jump");
         self.send_data(&param_name, vec![OscType::Int(1)]); // activate jump
-        cli::sleep(10);
+        cli::sleep(10); // required sleep time for "keypresses" to register
         self.send_data(&param_name, vec![OscType::Int(0)]) // reset jump
     }
 
@@ -77,7 +82,7 @@ impl Client {
     }
 
     pub fn chatbox_message(&self, message: &str) { 
-        // implement this at compile time later
+        // IMPLEMENT THIS AT COMPILE TIME LATER
         // truncate message to max length (144) if it's over that length
         let mut verified_message: &str = &message;
         if message.len() > 144 {

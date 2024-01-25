@@ -14,8 +14,7 @@ fn main() {
     vrc.test_actions();
 
     loop {
-        vrc.chatbox_message("rico's bs -> testing message connection, sorry if messages are annoying 🙏");
-
-        cli::sleep(20000);
+        vrc.chatbox_message("rico's bs -> osc socket connection test lmk if you can see this when it updates (gonna make this into a spotify updater later) 🙏");
+        cli::sleep(5000);
     }
 }
