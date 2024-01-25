@@ -62,7 +62,7 @@ impl Client {
         self.send_data(&param_name, vec![param_arg])
     }
 
-    pub fn input_Jump(&self) {
+    pub fn input_jump(&self) {
         let param_name = format!("/input/Jump");
         let param_arg: OscType = OscType::Bool(false); // placeholder variable FIX LATER !!!!!!
         self.send_data(&param_name, vec![param_arg])
@@ -88,5 +88,33 @@ impl Client {
             OscType::Bool(true), // don't open keyboard (post straight to chatbox)
             OscType::Bool(false)]; // don't play notification sound
         self.send_data(param_name, param_arg)
+    }
+
+    pub fn test_actions(&self) {
+        // moving left for 1750ms = 360 degrees
+
+        self.chatbox_message("Calibrating movement..."); // no it does not calibrate movement lol
+
+        self.input_look("Left", true);
+
+        self.input_move("Forward", true);
+        cli::sleep(1775);
+        self.input_move("Forward", false);
+
+        self.input_look("Left", false);
+
+        self.input_look("Right", true);
+
+        self.input_move("Backward", true);
+        cli::sleep(1775);
+        self.input_move("Backward", false);
+
+        self.input_look("Right", false);
+
+        self.input_jump();
+
+        self.chatbox_message("bless up 🙏");
+
+        cli::sleep(3000);
     }
 }

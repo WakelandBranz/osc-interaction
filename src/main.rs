@@ -11,14 +11,10 @@ fn main() {
 
     let vrc = Client::new();
 
-    vrc.input_move("Forward", true);
-
-    cli::sleep(1000);
-
-    vrc.input_move("Forward", false);
+    vrc.test_actions();
 
     loop {
-        vrc.chatbox_message("rico's bs -> TESTING OSC SOCKET CONNECTION (let me know if you see this please)");
+        vrc.chatbox_message("rico's bs -> socket connection works thank god 🙏");
 
         cli::sleep(20000);
     }
