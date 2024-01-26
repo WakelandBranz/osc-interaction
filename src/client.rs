@@ -1,24 +1,25 @@
 // library import
 extern crate rosc;
 
+// import from cli.rs
 use crate::cli;
-
-//rosc encoder
+// rosc encoder
 use rosc::encoder;
 // rosc types
 use rosc::{OscMessage, OscPacket, OscType};
+// import from traits.rs
+use crate::traits::{SendData, Input, Avatar};
 
 use log::{debug, info, warn, error};
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
-trait SendData { 
-    fn send_data(&self, param_name: &str, param_arg: Vec<OscType>);
-}
-
 #[derive(Debug)]
 pub struct Client {
     currently_playing: String,
-    address: SocketAddrV4,
+    listen_addr: SocketAddrV4,
+    query_addr: SocketAddrV4, // implement in the future
+    listen_addr_str: String,
+    query_addr_str: String,
     sock: UdpSocket
 }
 
@@ -32,56 +33,70 @@ impl SendData for Client {
         .unwrap();
 
         // sends the encoded Message buffer to VRChat on port 9000
-        self.sock.send_to(&msg_buf, self.address).unwrap();
+        // send to requires a String as its address:port
+        self.sock.send_to(&msg_buf, self.query_addr_str.clone()).unwrap();
     }
 }
 
-impl Client {
-    pub fn new() -> Self {
-        debug!("Binding to 127.0.0.1:9001 | Info will be sent to 127.0.0.1:9000");
+impl Input for Client {
+    /* 
+     * AXES
+     */
 
-        Client {
-            currently_playing: String::new(),
-            address: SocketAddrV4::new(Ipv4Addr::new(127, 0, 0 , 1), 9000),
-            sock: UdpSocket::bind(format!("127.0.0.1:9001")).unwrap()
-        }
+    // forward and backward movement, more precise than input_move
+    // vertical takes f32 from -1 to 1
+    fn input_vertical(&self, velocity: f32) {
+        let param_name: String = "/input/Vertical".to_string();
+        let param_arg: OscType = OscType::Float(velocity);
+        self.send_data(&param_name, vec![param_arg])
     }
 
-    // tests if game socket connection is open
-    pub fn test_socket(&self) -> bool {
-        todo!();
+    // left and right movement, more precise than input_move
+    // horizontal takes f32 from -1 to 1
+    fn input_horizontal(&self, velocity: f32) {
+        let param_name: String = "/input/Horizontal".to_string();
+        let param_arg: OscType = OscType::Float(velocity);
+        self.send_data(&param_name, vec![param_arg])
     }
+
+    /*
+     * BUTTONS
+     */
 
     // directions are 'Forward', 'Backward', 'Left', 'Right'
-    pub fn input_move(&self, direction: &str, toggle: bool) {
-        let param_name = format!("/input/Move{}", direction);
+    fn input_move(&self, direction: &str, toggle: bool) {
+        let param_name: String = format!("/input/Move{}", direction);
         let param_arg: OscType = OscType::Bool(toggle);
         self.send_data(&param_name, vec![param_arg])
     }
 
     // directions are 'Left' and 'Right'
-    pub fn input_look(&self, direction: &str, toggle: bool) {
-        let param_name = format!("/input/Look{}", direction);
+    fn input_look(&self, direction: &str, toggle: bool) {
+        let param_name: String = format!("/input/Look{}", direction);
         let param_arg: OscType = OscType::Bool(toggle);
         self.send_data(&param_name, vec![param_arg])
     }
 
     // jump takes ints 1 and 0 -> 1 is activated 0 is reset
-    pub fn input_jump(&self) {
-        let param_name = format!("/input/Jump");
+    fn input_jump(&self) {
+        let param_name: String = "/input/Jump".to_string();
         self.send_data(&param_name, vec![OscType::Int(1)]); // activate jump
         cli::sleep(10); // required sleep time for "keypresses" to register
         self.send_data(&param_name, vec![OscType::Int(0)]) // reset jump
     }
 
     // run takes ints 1 and 0 -> 1 is activated 0 is inactive
-    pub fn input_run(&self, toggle: i32) {
-        let param_name = format!("/input/Run");
+    fn input_run(&self, toggle: i32) {
+        let param_name: String = "/input/Run".to_string();
         let param_arg: OscType = OscType::Int(toggle);
         self.send_data(&param_name, vec![param_arg]) // 1 = running | 0 = walking
     }
 
-    pub fn chatbox_message(&self, message: &str) { 
+    // takes inputs s b n
+    // s = chatbox text | can be sent as a raw string
+    // b = don't open keyboard (post straight to chatbox)
+    // n = don't play notification sound
+    fn chatbox_message(&self, message: &str) { 
         // IMPLEMENT THIS AT COMPILE TIME LATER
         // truncate message to max length (144) if it's over that length
         let mut verified_message: &str = &message;
@@ -91,10 +106,10 @@ impl Client {
         }
 
         // error checking for future reference
-        let time = cli::string_system_time();
+        let time: String = cli::string_system_time();
         debug!("Sent '{}' at {}", &verified_message, &time);
 
-        let param_name = "/chatbox/input"; // destination
+        let param_name: &str = "/chatbox/input"; // destination
         // args
         let param_arg: Vec<OscType> = vec![
             OscType::String(format!("{} | {}", time, verified_message)), // chatbox text
@@ -102,8 +117,50 @@ impl Client {
             OscType::Bool(false)]; // don't play notification sound
         self.send_data(param_name, param_arg)
     }
+}
 
-    pub fn input_init(&self) {
+impl Client {
+    // requires two ports to bind to, first is the receive port, second is the query port
+    pub fn new(listen_port: u16, query_port: u16) -> Self {  
+
+        // always listen to port 9001 by default
+        let listen_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), listen_port);
+        // always query to port 9000 by default
+        let query_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), query_port);
+
+        // ensure that socket has bound successfully
+        let socket = match UdpSocket::bind(&listen_addr) {
+            // if successful, print to debug and assign to variable
+            Ok(success) =>  {
+                debug!("Sucessfully bound to {:?}", &listen_addr);
+                success
+            }
+            // if unsuccessful, print to error and panic close program
+            Err(e) =>  {
+                error!("Failed to bind to {:?}, is your VRChat client open?", &listen_addr);
+                panic!("Error: {:?}", e);
+            }
+            _ => panic!("Something went horribly wrong when binding the socket")
+        };
+
+        debug!("Binding to 127.0.0.1:9001 | Info will be sent to 127.0.0.1:9000");
+
+        Client {
+            currently_playing: String::new(),
+            listen_addr,
+            query_addr,
+            listen_addr_str: format!("{}:{}", listen_addr.ip(), listen_addr.port()),
+            query_addr_str: format!("{}:{}", query_addr.ip(), query_addr.port()),
+            sock: socket
+        }
+    }
+
+    // tests if game socket connection is open
+    pub fn test_socket(&self) -> bool {
+        todo!();
+    }
+
+    pub fn input_button_init(&self) {
         self.send_data("/input/Jump", vec![OscType::Int(0)]); // init jump to 0
         cli::sleep(10);
         self.send_data("/input/Run", vec![OscType::Int(0)]); // init run to 0
@@ -112,11 +169,11 @@ impl Client {
     }
 
     // this is all super hardcoded, its just a demonstration and its kinda cool in public lobbies
-    pub fn test_actions(&self) {
+    pub fn input_test(&self) {
         // moving left for 1750ms = 360 degrees
 
         // ensure that you can run and jump before moving
-        self.input_init();
+        self.input_button_init();
 
         self.chatbox_message("calibrating movement..."); // no it does not calibrate movement lol
 
