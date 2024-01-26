@@ -16,10 +16,10 @@ use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 #[derive(Debug)]
 pub struct Client {
     currently_playing: String,
-    listen_addr: SocketAddrV4,
-    query_addr: SocketAddrV4, // implement in the future
-    listen_addr_str: String,
-    query_addr_str: String,
+    rx_addr: SocketAddrV4, // receiver
+    rx_addr_str: String,
+    tx_addr: SocketAddrV4, // transmitter
+    tx_addr_str: String,
     sock: UdpSocket
 }
 
@@ -34,7 +34,7 @@ impl SendData for Client {
 
         // sends the encoded Message buffer to VRChat on port 9000
         // send to requires a String as its address:port
-        self.sock.send_to(&msg_buf, self.query_addr_str.clone()).unwrap();
+        self.sock.send_to(&msg_buf, self.tx_addr_str.clone()).unwrap();
     }
 }
 
@@ -153,35 +153,35 @@ impl Input for Client {
 
 impl Client {
     // requires two ports to bind to, first is the receive port, second is the query port
-    pub fn new(listen_port: u16, query_port: u16) -> Self {  
+    pub fn new(rx_port: u16, tx_port: u16) -> Self {  
 
         // always listen to port 9001 by default
-        let listen_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), listen_port);
+        let rx_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), rx_port);
         // always query to port 9000 by default
-        let query_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), query_port);
+        let tx_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), tx_port);
 
         // ensure that socket has bound successfully
-        let socket = match UdpSocket::bind(&listen_addr) {
+        let socket = match UdpSocket::bind(&rx_addr) {
             // if successful, print to debug and assign to variable
             Ok(success) =>  {
-                debug!("Sucessfully bound to {:?}", &listen_addr);
+                debug!("Sucessfully bound to {:?}", &rx_addr);
                 success
             }
             // if unsuccessful, print to error and panic close program
             Err(e) =>  {
-                error!("Failed to bind to {:?}, is your VRChat client open?", &listen_addr);
+                error!("Failed to bind to {:?}, is your VRChat client open?", &rx_addr);
                 panic!("Error: {:?}", e);
             }
         };
 
-        debug!("Binding to {} | Info will be sent to {}", &listen_addr, &query_addr);
+        debug!("Binding to {} | Info will be sent to {}", &rx_addr, &tx_addr);
 
         Client {
             currently_playing: String::new(),
-            listen_addr,
-            query_addr,
-            listen_addr_str: format!("{}:{}", listen_addr.ip(), listen_addr.port()),
-            query_addr_str: format!("{}:{}", query_addr.ip(), query_addr.port()),
+            rx_addr,
+            tx_addr,
+            rx_addr_str: format!("{}:{}", rx_addr.ip(), rx_addr.port()),
+            tx_addr_str: format!("{}:{}", tx_addr.ip(), tx_addr.port()),
             sock: socket
         }
     }
