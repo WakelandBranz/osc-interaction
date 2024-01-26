@@ -46,7 +46,7 @@ impl RxTx for Client {
         let mut buf = [0u8; rosc::decoder::MTU];
         
         // continuously read OSC data from port 9001.
-        loop {
+        //loop {
             /*
                 receive OSC data length in var "buffer_len". Address of origin data in "a".
                 writes the data received to the buffer on the stack "buf".
@@ -73,11 +73,11 @@ impl RxTx for Client {
                     OscPacket::Message(msg) => {
                         debug!("OSC Address: {}", msg.addr);
                         debug!("OSC Arguments: {:?}", msg.args);
-                        break;
+                        //break;
                     },
                     _ => {}
                 }
-            }
+            //}
         }
         
         
@@ -230,6 +230,10 @@ impl Client {
             tx_addr_str: format!("{}:{}", tx_addr.ip(), tx_addr.port()),
             sock: socket
         }
+    }
+
+    pub fn get_rx_addr(&self) -> &SocketAddrV4{
+        &self.rx_addr
     }
 
     // tests if game socket connection is open

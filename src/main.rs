@@ -21,26 +21,28 @@ fn main() {
 
     info!("Started!");
 
-    let vrc: Arc<Mutex<Client>> = Arc::new(Mutex::new(Client::new(9001, 9000)));
+    let vrc_client: Arc<Client> = Arc::new(Client::new(9001, 9000));
 
     // clone the Arc for each thread that needs access to the vrc client
-    let vrc_thread1 = Arc::clone(&vrc);
+    let vrc_thread1 = Arc::clone(&vrc_client);
 
-    vrc.lock().unwrap().input_test();
+    vrc_client.input_test();
 
     thread::spawn(move || {
         loop {
-            vrc_thread1.lock().unwrap().chatbox_message(format!(
+            vrc_thread1.chatbox_message(format!(
                 r#"rico's bs
             currently in development 🙏
             testing multithreading..."#).as_str());
-            cli::sleep(1500);
+            cli::sleep(3000);
         }
         
     });
 
+    info!("Preparing to log all incoming OSC packets at {}", vrc_client.get_rx_addr());
+    cli::sleep(3000);
     loop {
-        vrc.lock().unwrap().recv_data();
-        cli::sleep(5);
+        vrc_client.recv_data();
+        cli::sleep(5); // give mutex enough time to unlock for other thread
     }
 }
