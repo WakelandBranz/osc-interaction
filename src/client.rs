@@ -8,10 +8,12 @@ use rosc::encoder;
 // rosc types
 use rosc::{OscMessage, OscPacket, OscType};
 // import from traits.rs
-use crate::traits::{SendData, Input, Avatar};
+use crate::traits::{RxTx, Input, Avatar};
 
 use log::{debug, info, warn, error};
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
+
+use std::sync::{mpsc, Mutex, Arc};
 
 #[derive(Debug)]
 pub struct Client {
@@ -23,7 +25,7 @@ pub struct Client {
     sock: UdpSocket
 }
 
-impl SendData for Client {
+impl RxTx for Client {
     fn send_data(&self, param_name: &str, param_arg: Vec<OscType>) {
         // create OSC/1.0 Message buffer with parameter name and parameter value/arg
         let msg_buf = encoder::encode(&OscPacket::Message(OscMessage {
@@ -34,7 +36,51 @@ impl SendData for Client {
 
         // sends the encoded Message buffer to VRChat on port 9000
         // send to requires a String as its address:port
+        // allows for multithreading
         self.sock.send_to(&msg_buf, self.tx_addr_str.clone()).unwrap();
+    }
+
+    fn recv_data(&self) {
+
+        // create/allocate buffer on the stack with a size of MTU
+        let mut buf = [0u8; rosc::decoder::MTU];
+        
+        // continuously read OSC data from port 9001.
+        loop {
+            /*
+                receive OSC data length in var "buffer_len". Address of origin data in "a".
+                writes the data received to the buffer on the stack "buf".
+            */
+            let (buffer_len, _a) = self.sock.recv_from(&mut buf).unwrap();
+            /*
+                checks that the packet is greater than 0 bytes.
+                if the packet length is <= 0 then the recv loop is restarted.
+                the received buffer is then decoded and parsed.
+                if the decoded packet "pkt" is of OSC type Message
+                the OSC address and OSC args are printed to the CLI.
+            */
+            if buffer_len <= 0 {
+            } 
+            else {
+                let pkt = match rosc::decoder::decode_udp(&buf) {
+                    Ok(pkt) => pkt,
+                    Err(_e) => {
+                        error!("{}", "!!! Invalid OSC buffer !!!");
+                        panic!("Failed to read OSC buffer")
+                    },
+                };
+                match pkt.1 {
+                    OscPacket::Message(msg) => {
+                        debug!("OSC Address: {}", msg.addr);
+                        debug!("OSC Arguments: {:?}", msg.args);
+                        break;
+                    },
+                    _ => {}
+                }
+            }
+        }
+        
+        
     }
 }
 
@@ -191,7 +237,7 @@ impl Client {
         todo!();
     }
 
-    // ensure that you can run and jump before moving, i'm not sure how necessary this really is.
+    // ensure that you can run and jump before moving, i'm not sure how necessary this really is
     pub fn input_button_init(&self) {
         self.send_data("/input/Jump", vec![OscType::Int(0)]); // init jump to 0
         cli::sleep(10);
