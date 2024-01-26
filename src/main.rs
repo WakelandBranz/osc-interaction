@@ -43,6 +43,5 @@ fn main() {
     cli::sleep(3000);
     loop {
         vrc_client.recv_data();
-        cli::sleep(5); // give mutex enough time to unlock for other thread
     }
 }

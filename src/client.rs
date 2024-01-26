@@ -23,6 +23,10 @@ pub struct Client {
     tx_addr: SocketAddrV4, // transmitter
     tx_addr_str: String,
     sock: UdpSocket
+
+    // some future ideas
+    // implement velocity tracking in a mutex so that multiple threads can call to it
+    // modify velocity by intercepting when it changes and then hardcoding it to be 3.0 (max velocity in xyz)
 }
 
 impl RxTx for Client {
