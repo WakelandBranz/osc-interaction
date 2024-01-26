@@ -12,12 +12,28 @@ pub trait Input {
      */
 
     // forward and backward movement, more precise than input_move
-    // vertical takes f32 from -1 to 1
-    fn input_vertical(&self, direction: f32);
+    // takes f32 from -1 to 1
+    fn input_vertical(&self, velocity: f32);
 
     // left and right movement, more precise than input_move
-    // horizontal takes f32 from -1 to 1
+    // takes f32 from -1 to 1
     fn input_horizontal(&self, velocity: f32);
+
+    // forward and backward movement for a held object
+    // takes f32 from -1 to 1
+    fn input_move_hold(&self, velocity: f32);
+
+    // clockwise and counter-clockwise movement for a held object
+    // takes f32 from -1 to 1
+    fn input_spin_hold_cw(&self, velocity: f32);
+
+    // up and down movement for a held object
+    // takes f32 from -1 to 1
+    fn input_spin_hold_vertical(&self, velocity: f32);
+
+    // left and right movement for a held object
+    // takes f32 from -1 to 1
+    fn input_spin_hold_horizontal(&self, velocity: f32);
 
     /*
      * BUTTONS

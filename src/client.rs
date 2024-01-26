@@ -59,6 +59,38 @@ impl Input for Client {
         self.send_data(&param_name, vec![param_arg])
     }
 
+    // forward and backward movement for a held object
+    // takes f32 from -1 to 1
+    fn input_move_hold(&self, velocity: f32) {
+        let param_name: String = "/input/MoveHoldFB".to_string();
+        let param_arg: OscType = OscType::Float(velocity);
+        self.send_data(&param_name, vec![param_arg])
+    }
+
+    // clockwise and counter-clockwise movement for a held object
+    // takes f32 from -1 to 1
+    fn input_spin_hold_cw(&self, velocity: f32) {
+        let param_name: String = "/input/SpinHoldCwCcw".to_string();
+        let param_arg: OscType = OscType::Float(velocity);
+        self.send_data(&param_name, vec![param_arg])
+    }
+
+    // up and down movement for a held object
+    // takes f32 from -1 to 1
+    fn input_spin_hold_vertical(&self, velocity: f32) {
+        let param_name: String = "/input/SpinHoldUD".to_string();
+        let param_arg: OscType = OscType::Float(velocity);
+        self.send_data(&param_name, vec![param_arg])
+    }
+
+    // left and right movement for a held object
+    // takes f32 from -1 to 1
+    fn input_spin_hold_horizontal(&self, velocity: f32) {
+        let param_name: String = "/input/SpinHoldLR".to_string();
+        let param_arg: OscType = OscType::Float(velocity);
+        self.send_data(&param_name, vec![param_arg])
+    }
+
     /*
      * BUTTONS
      */
@@ -140,10 +172,9 @@ impl Client {
                 error!("Failed to bind to {:?}, is your VRChat client open?", &listen_addr);
                 panic!("Error: {:?}", e);
             }
-            _ => panic!("Something went horribly wrong when binding the socket")
         };
 
-        debug!("Binding to 127.0.0.1:9001 | Info will be sent to 127.0.0.1:9000");
+        debug!("Binding to {} | Info will be sent to {}", &listen_addr, &query_addr);
 
         Client {
             currently_playing: String::new(),
@@ -160,6 +191,7 @@ impl Client {
         todo!();
     }
 
+    // ensure that you can run and jump before moving, i'm not sure how necessary this really is.
     pub fn input_button_init(&self) {
         self.send_data("/input/Jump", vec![OscType::Int(0)]); // init jump to 0
         cli::sleep(10);
@@ -172,8 +204,9 @@ impl Client {
     pub fn input_test(&self) {
         // moving left for 1750ms = 360 degrees
 
-        // ensure that you can run and jump before moving
-        self.input_button_init();
+        debug!("!!! Check OSC debug menu to ensure that these actions are functional !!!");
+
+        self.input_button_init(); // ensure that you can run and jump before moving
 
         self.chatbox_message("calibrating movement..."); // no it does not calibrate movement lol
 
@@ -197,16 +230,16 @@ impl Client {
 
         self.chatbox_message("calibrating movement -> Forward");
         self.input_run(1);
-        self.input_move("Forward", true);
+        self.input_vertical(0.5);
         cli::sleep(1000);
-        self.input_move("Forward", false);
+        self.input_vertical(0.0);
         self.input_run(0);
 
         self.chatbox_message("calibrating movement -> Backward");
         self.input_run(1);
-        self.input_move("Backward", true);
+        self.input_vertical(-0.5);
         cli::sleep(1000);
-        self.input_move("Backward", false);
+        self.input_vertical(0.0);
         self.input_run(0);
 
         cli::sleep(100);
@@ -216,6 +249,23 @@ impl Client {
         self.input_jump();
         cli::sleep(500);
         self.input_jump();
+
+        // spacing in timing as to not exceed ratelimit
+        self.input_move_hold(1.0);
+        cli::sleep(200);
+        self.input_move_hold(-1.0);
+
+        self.input_spin_hold_cw(1.0);
+        cli::sleep(200);
+        self.input_spin_hold_cw(-1.0);
+
+        self.input_spin_hold_vertical(1.0);
+        cli::sleep(200);
+        self.input_spin_hold_vertical(-1.0);
+
+        self.input_spin_hold_horizontal(1.0);
+        cli::sleep(200);
+        self.input_spin_hold_horizontal(-1.0);
 
         self.chatbox_message("bless up 🙏");
 
