@@ -1,9 +1,8 @@
 // required for OSC functionality
 use rosc::OscType;
-use std::net::UdpSocket;
 
 // thank you https://github.com/SutekhVRC/VRCOSCExample
-pub trait RxTx { 
+pub trait Data { 
     fn send_data(&self, param_name: &str, param_arg: Vec<OscType>);
 
     fn recv_data(&self);

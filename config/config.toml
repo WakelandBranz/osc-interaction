@@ -1,0 +1,10 @@
+[network]
+localhost = "127.0.0.1"
+rx_port = 9001
+tx_port = 9000
+
+[features]
+spotify = true
+
+[dev]
+debug = true

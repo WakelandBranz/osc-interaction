@@ -8,28 +8,25 @@ use rosc::encoder;
 // rosc types
 use rosc::{OscMessage, OscPacket, OscType};
 // import from traits.rs
-use crate::traits::{RxTx, Input, Avatar};
+use crate::traits::{Data, Input, Avatar};
 
 use log::{debug, info, warn, error};
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
-use std::sync::{mpsc, Mutex, Arc};
-
 #[derive(Debug)]
 pub struct Client {
-    currently_playing: String,
-    rx_addr: SocketAddrV4, // receiver
-    rx_addr_str: String,
-    tx_addr: SocketAddrV4, // transmitter
-    tx_addr_str: String,
-    sock: UdpSocket
+    pub rx_addr: SocketAddrV4, // receiver
+    pub rx_addr_str: String,
+    pub tx_addr: SocketAddrV4, // transmitter
+    pub tx_addr_str: String,
+    pub sock: UdpSocket,
 
     // some future ideas
     // implement velocity tracking in a mutex so that multiple threads can call to it
     // modify velocity by intercepting when it changes and then hardcoding it to be 3.0 (max velocity in xyz)
 }
 
-impl RxTx for Client {
+impl Data for Client {
     fn send_data(&self, param_name: &str, param_arg: Vec<OscType>) {
         // create OSC/1.0 Message buffer with parameter name and parameter value/arg
         let msg_buf = encoder::encode(&OscPacket::Message(OscMessage {
@@ -40,7 +37,6 @@ impl RxTx for Client {
 
         // sends the encoded Message buffer to VRChat on port 9000
         // send to requires a String as its address:port
-        // allows for multithreading
         self.sock.send_to(&msg_buf, self.tx_addr_str.clone()).unwrap();
     }
 
@@ -50,38 +46,35 @@ impl RxTx for Client {
         let mut buf = [0u8; rosc::decoder::MTU];
         
         // continuously read OSC data from port 9001.
-        //loop {
-            /*
-                receive OSC data length in var "buffer_len". Address of origin data in "a".
-                writes the data received to the buffer on the stack "buf".
-            */
-            let (buffer_len, _a) = self.sock.recv_from(&mut buf).unwrap();
-            /*
-                checks that the packet is greater than 0 bytes.
-                if the packet length is <= 0 then the recv loop is restarted.
-                the received buffer is then decoded and parsed.
-                if the decoded packet "pkt" is of OSC type Message
-                the OSC address and OSC args are printed to the CLI.
-            */
-            if buffer_len <= 0 {
-            } 
-            else {
-                let pkt = match rosc::decoder::decode_udp(&buf) {
-                    Ok(pkt) => pkt,
-                    Err(_e) => {
-                        error!("{}", "!!! Invalid OSC buffer !!!");
-                        panic!("Failed to read OSC buffer")
-                    },
-                };
-                match pkt.1 {
-                    OscPacket::Message(msg) => {
-                        debug!("OSC Address: {}", msg.addr);
-                        debug!("OSC Arguments: {:?}", msg.args);
-                        //break;
-                    },
-                    _ => {}
-                }
-            //}
+        
+        /*
+            receive OSC data length in var "buffer_len". Address of origin data in "a".
+            writes the data received to the buffer on the stack "buf".
+        */
+        let (buffer_len, _a) = self.sock.recv_from(&mut buf).unwrap();
+        /*
+            checks that the packet is greater than 0 bytes.
+            if the packet length is <= 0 then the recv loop is restarted.
+            the received buffer is then decoded and parsed.
+            if the decoded packet "pkt" is of OSC type Message
+            the OSC address and OSC args are printed to the CLI.
+        */
+        if buffer_len <= 0 { } 
+        else {
+            let pkt = match rosc::decoder::decode_udp(&buf) {
+                Ok(pkt) => pkt,
+                Err(_e) => {
+                    error!("{}", "!!! Invalid OSC buffer !!!");
+                    panic!("Failed to read OSC buffer")
+                },
+            };
+            match pkt.1 {
+                OscPacket::Message(msg) => {
+                    debug!("OSC Address: {}", msg.addr);
+                    debug!("OSC Arguments: {:?}", msg.args);
+                },
+                _ => {}
+            }
         }
         
         
@@ -187,12 +180,10 @@ impl Input for Client {
             warn!("Message length > 144! Automatically truncated to length 144.")
         }
 
-        // error checking for future reference
         let time: String = cli::string_system_time();
         debug!("Sent '{}' at {}", &verified_message, &time);
 
-        let param_name: &str = "/chatbox/input"; // destination
-        // args
+        let param_name: &str = "/chatbox/input";
         let param_arg: Vec<OscType> = vec![
             OscType::String(format!("{} | {}", time, verified_message)), // chatbox text
             OscType::Bool(true), // don't open keyboard (post straight to chatbox)
@@ -206,18 +197,15 @@ impl Client {
     pub fn new(rx_port: u16, tx_port: u16) -> Self {  
 
         // always listen to port 9001 by default
-        let rx_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), rx_port);
         // always query to port 9000 by default
+        let rx_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), rx_port);
         let tx_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), tx_port);
 
-        // ensure that socket has bound successfully
         let socket = match UdpSocket::bind(&rx_addr) {
-            // if successful, print to debug and assign to variable
             Ok(success) =>  {
                 debug!("Sucessfully bound to {:?}", &rx_addr);
                 success
             }
-            // if unsuccessful, print to error and panic close program
             Err(e) =>  {
                 error!("Failed to bind to {:?}, is your VRChat client open?", &rx_addr);
                 panic!("Error: {:?}", e);
@@ -227,20 +215,14 @@ impl Client {
         debug!("Binding to {} | Info will be sent to {}", &rx_addr, &tx_addr);
 
         Client {
-            currently_playing: String::new(),
             rx_addr,
             tx_addr,
             rx_addr_str: format!("{}:{}", rx_addr.ip(), rx_addr.port()),
             tx_addr_str: format!("{}:{}", tx_addr.ip(), tx_addr.port()),
-            sock: socket
+            sock: socket,
         }
     }
 
-    pub fn get_rx_addr(&self) -> &SocketAddrV4{
-        &self.rx_addr
-    }
-
-    // tests if game socket connection is open
     pub fn test_socket(&self) -> bool {
         todo!();
     }
