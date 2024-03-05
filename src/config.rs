@@ -10,16 +10,26 @@ use toml;
 
 use log::{debug, info, error};
 
+use crate::cli;
+
  
 
 // this method of parsing data seems convoluted.  if anyone has tips on how to implement this
 // in a better way, please let me know.
 
+const CONFIG_FILEPATHS: [&str ; 2] = [
+    "config\\config.toml",
+    "config\\Config.toml"
+];
+
 const DEFAULT_NETWORK_LOCALHOST: &str = "127.0.0.1";
 const DEFAULT_NETWORK_RX_PORT: u16 = 9001;
 const DEFAULT_NETWORK_TX_PORT: u16 = 9000;
+const DEFAULT_LOCAL_TIME: bool = false;
 const DEFAULT_SPOTIFY: bool = false;
 const DEFAULT_DEBUG: bool = false;
+
+const LOCAL_TIME_LENGTH: usize = 8;
 
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -31,6 +41,8 @@ pub struct ConfigNetwork {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConfigFeatures {
+    pub text: Option<String>,
+    pub local_time: Option<bool>,
     pub spotify: Option<bool>,
 }
 
@@ -48,14 +60,9 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        let config_filepaths: [&str ; 2] = [
-            "config\\config.toml",
-            "config\\Config.toml"
-        ];
-
         let mut content: String = "".to_string();
 
-        for filepath in config_filepaths {
+        for filepath in CONFIG_FILEPATHS {
             let result: Result<String, Error> = fs::read_to_string(filepath);
 
             match result {
@@ -106,18 +113,32 @@ impl Config {
 
         };
 
-        let (spotify) = match config.features {
+        /*
+        FEATURES
+        */
+        
+        let (text, local_time, spotify) = match config.features {
             Some(features) => {
+                let features_text: String = features.text.unwrap_or_else(|| {
+                    error!("Failed to read local_time -> text from config | Defaulting to ''");
+                    "".to_string()
+                });
+
+                let features_local_time: bool = features.local_time.unwrap_or_else(|| {
+                    error!("Failed to read local_time -> local_time from config | Defaulting to false");
+                    false
+                });
+
                 let features_spotify: bool = features.spotify.unwrap_or_else(|| {
                     error!("Failed to read features -> spotify from config | Defaulting to false");
                     false
                 });
 
-                (features_spotify)
+                (features_text, features_local_time, features_spotify)
             }
             None => {
                 error!("Missing table from config: features | Defaulting to false");
-                (DEFAULT_SPOTIFY)
+                ("".to_string(), DEFAULT_LOCAL_TIME, DEFAULT_SPOTIFY)
             }
         };
 
@@ -127,6 +148,7 @@ impl Config {
                     error!("Failed to read dev -> debug from config | Defaulting to false");
                     false
                 });
+
                 (dev_debug)
             }
             None => {
@@ -144,6 +166,8 @@ impl Config {
                 tx_port: Some(tx_port),
             }),
             features: Some(ConfigFeatures {
+                text: Some(text),
+                local_time: Some(local_time),
                 spotify: Some(spotify),
             }),
             dev: Some(ConfigDev {
@@ -151,4 +175,6 @@ impl Config {
             }),
         }
     }
+
+   
 }

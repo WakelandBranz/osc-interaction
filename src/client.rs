@@ -175,17 +175,16 @@ impl Input for Client {
         // IMPLEMENT THIS AT COMPILE TIME LATER
         // truncate message to max length (144) if it's over that length
         let mut verified_message: &str = &message;
-        if message.len() > 144 {
-            verified_message = cli::truncate(message, 144);
-            warn!("Message length > 144! Automatically truncated to length 144.")
-        }
+        //if message.len() > 144 {
+        //    verified_message = cli::truncate(message, 144);
+        //    warn!("Message length > 144! Automatically truncated to length 144.")
+        //}
 
-        let time: String = cli::string_system_time();
-        debug!("Sent '{}' at {}", &verified_message, &time);
+        debug!("Sent '{}' at {}", &verified_message, cli::string_system_time());
 
         let param_name: &str = "/chatbox/input";
         let param_arg: Vec<OscType> = vec![
-            OscType::String(format!("{} | {}", time, verified_message)), // chatbox text
+            OscType::String(verified_message.to_string()), // chatbox text
             OscType::Bool(true), // don't open keyboard (post straight to chatbox)
             OscType::Bool(false)]; // don't play notification sound
         self.send_data(param_name, param_arg)
@@ -286,25 +285,29 @@ impl Client {
         cli::sleep(500);
         self.input_jump();
 
-        // spacing in timing as to not exceed ratelimit
-        self.input_move_hold(1.0);
-        cli::sleep(200);
-        self.input_move_hold(-1.0);
-
-        self.input_spin_hold_cw(1.0);
-        cli::sleep(200);
-        self.input_spin_hold_cw(-1.0);
-
-        self.input_spin_hold_vertical(1.0);
-        cli::sleep(200);
-        self.input_spin_hold_vertical(-1.0);
-
-        self.input_spin_hold_horizontal(1.0);
-        cli::sleep(200);
-        self.input_spin_hold_horizontal(-1.0);
-
         self.chatbox_message("bless up 🙏");
 
         cli::sleep(3000);
+    }
+
+    // cool spinning effect for picked up items
+
+    pub fn input_rotate_axis_left(&self) {
+        // spacing in timing as to not exceed ratelimit
+        self.input_spin_hold_cw(-0.5);
+
+        self.input_spin_hold_vertical(-0.5);
+    
+        self.input_spin_hold_horizontal(-0.5);
+    }
+
+    // cool spinning effect for picked up items
+    pub fn input_rotate_axis_right(&self) {
+        // spacing in timing as to not exceed ratelimit
+        self.input_spin_hold_cw(0.5);
+
+        self.input_spin_hold_vertical(0.5);
+    
+        self.input_spin_hold_horizontal(0.5);
     }
 }
