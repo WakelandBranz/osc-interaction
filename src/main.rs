@@ -22,7 +22,7 @@ use crate::traits::{Input, Avatar, Data};
 use crate::config::Config;
 
 fn main() {
-    cli::init_logger("debug");
+    cli::init_logger("info");
 
     info!("Started!");
 
@@ -33,7 +33,7 @@ fn main() {
 
     // clone the Arc for each thread that needs access to certain variables
     let vrc_thread1 = Arc::clone(&vrc_client);
-    let mut config_thread1 = Arc::clone(&config);
+    let config_thread1 = Arc::clone(&config);
 
     thread::spawn(move || {
         //vrc_thread1.input_test();
@@ -61,5 +61,6 @@ fn main() {
     info!("Logging all incoming OSC packets at {}", vrc_client.rx_addr);
     loop {
         //vrc_client.recv_data();
+        cli::sleep(100);
     }
 }
