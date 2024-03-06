@@ -36,25 +36,4 @@ impl Proc {
         }
     }
 
-
-    pub fn update(&mut self, ) {
-        let system = System::new_all();
-
-        let (pid, window_name) = system
-            .processes()
-            .iter()
-            .find(|(_, process)| process.name() == self.desired_name)
-            .map(|(pid, process)| (Some(*pid), Some(process.name().to_string())))
-            .unwrap_or((None, None));
-
-        if let Some(pid) = pid {
-            info!("Found process '{}' with PID {}", self.desired_name, pid);
-        } 
-        else {
-            warn!("Process '{}' not found", self.desired_name);
-        }
-
-        self.pid = pid;
-        self.window_name = window_name;
-    }
 }
