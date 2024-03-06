@@ -3,6 +3,7 @@ extern crate rosc;
 
 // import from cli.rs
 use crate::cli;
+
 // rosc encoder
 use rosc::encoder;
 // rosc types
@@ -206,7 +207,7 @@ impl Client {
                 success
             }
             Err(e) =>  {
-                error!("Failed to bind to {:?}, is your VRChat client open?", &rx_addr);
+                error!("Failed to bind to {:?}, is your VRChat client open? Is the port already occupied?", &rx_addr);
                 panic!("Error: {:?}", e);
             }
         };

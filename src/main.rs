@@ -3,15 +3,17 @@ mod client;
 // import traits for VRC client
 mod traits;
 // import CLI functions
-mod cli;
+mod utils;
+use utils::cli as cli;
 // import config functions
 mod config;
+// import features
+mod features;
+use features::spotify::Spotify as Spotify;
 
 // import logging features
 use log::{debug, info, warn, error};
 
-use std::net::UdpSocket;
-use std::sync::atomic::AtomicU16;
 // import threading capabilities
 use std::thread;
 use std::sync::{Arc, Mutex};
@@ -22,7 +24,7 @@ use crate::traits::{Input, Avatar, Data};
 use crate::config::Config;
 
 fn main() {
-    cli::init_logger("info");
+    cli::init_logger("debug");
 
     info!("Started!");
 
@@ -35,11 +37,15 @@ fn main() {
     let vrc_thread1 = Arc::clone(&vrc_client);
     let config_thread1 = Arc::clone(&config);
 
+    let mut spotify = Spotify::new();
+
     thread::spawn(move || {
         //vrc_thread1.input_test();
         loop {
             // acquire the lock on the config
             let mut config_guard = config_thread1.lock().unwrap();
+
+            
 
             // update the config
             *config_guard = Config::new();
@@ -61,6 +67,7 @@ fn main() {
     info!("Logging all incoming OSC packets at {}", vrc_client.rx_addr);
     loop {
         //vrc_client.recv_data();
-        cli::sleep(100);
+        cli::sleep(1000);
+        spotify.update();
     }
 }

@@ -10,8 +10,6 @@ use toml;
 
 use log::{debug, info, error};
 
-use crate::cli;
-
  
 
 // this method of parsing data seems convoluted.  if anyone has tips on how to implement this
@@ -84,9 +82,6 @@ impl Config {
 
         debug!("Created Config Object out of config file");
 
-
-        // future goal: implement these variables so that they are parsed into their respective struct
-
         let (localhost, rx_port, tx_port) = match config.network {
             Some(network) => {
                 let network_localhost: String = network.localhost.unwrap_or_else(|| {
@@ -157,7 +152,7 @@ impl Config {
             }
         };
 
-        info!("Available data parsed from config");
+        debug!("Available data parsed from config");
 
         Config {
             network: Some(ConfigNetwork {
