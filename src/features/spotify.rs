@@ -24,8 +24,8 @@ impl Spotify {
         debug!("Spotify process: Pid -> {:?} | Window name -> {:?}", spotify_proc.pid, spotify_proc.window_name);
 
         let test_song = Song {
-            name: "poop".to_string(),
-            artist: "fart".to_string()
+            name: "test".to_string(),
+            artist: "test".to_string()
         };
         
         Spotify {
@@ -40,8 +40,8 @@ impl Spotify {
         debug!("UPDATING Spotify process: Pid -> {:?} | Window name -> {:?}", spotify_proc.pid, spotify_proc.window_name);
 
         let test_song = Song {
-            name: "poop".to_string(),
-            artist: "fart".to_string()
+            name: "test".to_string(),
+            artist: "test2".to_string()
         };
 
         self.song = test_song;

@@ -24,7 +24,7 @@ use crate::traits::{Input, Avatar, Data};
 use crate::config::Config;
 
 fn main() {
-    cli::init_logger("debug");
+    cli::init_logger("info");
 
     info!("Started!");
 
@@ -45,16 +45,13 @@ fn main() {
             // acquire the lock on the config
             let mut config_guard = config_thread1.lock().unwrap();
 
-            
-
             // update the config
-            *config_guard = Config::new();
+            Config::update_features(&mut config_guard);
 
             let features = config_guard.features.as_ref().unwrap();
             let message_text = features.text.as_deref().unwrap_or_default();
 
             vrc_thread1.chatbox_message(format!("{} | {}", cli::string_system_time(), message_text).as_str()); // figure out config.message usage later
-
 
             vrc_thread1.input_rotate_axis_left();
             cli::sleep(1000);
@@ -68,6 +65,6 @@ fn main() {
     loop {
         //vrc_client.recv_data();
         cli::sleep(1000);
-        spotify.update();
+        //spotify.update();
     }
 }

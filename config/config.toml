@@ -1,13 +1,15 @@
+# this is not reparsed at runtime
 [network]
 localhost = "127.0.0.1"
 rx_port = 9001
 tx_port = 9000
 
 # triple quotes around text turn it into a raw string, allowing for more customization
+# this is reparsed at runtime
 [features]
 text = """wakeland's projects
-currently in development 🙏 dynamic config test"""
-local_time = false
+currently in development 🙏"""
+local_time = true
 spotify = true
 
 [dev]

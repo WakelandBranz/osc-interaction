@@ -173,13 +173,7 @@ impl Input for Client {
     // b = don't open keyboard (post straight to chatbox)
     // n = don't play notification sound
     fn chatbox_message(&self, message: &str) { 
-        // IMPLEMENT THIS AT COMPILE TIME LATER
-        // truncate message to max length (144) if it's over that length
-        let mut verified_message: &str = &message;
-        //if message.len() > 144 {
-        //    verified_message = cli::truncate(message, 144);
-        //    warn!("Message length > 144! Automatically truncated to length 144.")
-        //}
+        let verified_message: &str = &message;
 
         debug!("Sent '{}' at {}", &verified_message, cli::string_system_time());
 

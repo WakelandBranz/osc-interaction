@@ -10,7 +10,7 @@ use toml;
 
 use log::{debug, info, error};
 
- 
+use crate::utils::cli::{self, Benchmark};
 
 // this method of parsing data seems convoluted.  if anyone has tips on how to implement this
 // in a better way, please let me know.
@@ -58,6 +58,8 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
+        let benchmark = cli::Benchmark::new();
+
         let mut content: String = "".to_string();
 
         for filepath in CONFIG_FILEPATHS {
@@ -76,11 +78,11 @@ impl Config {
         }
 
         let config: Config = toml::from_str(&content).unwrap_or_else(|_| {
+            // file got messed up, return default
             error!("Failed to create Config Object out of config file.");
-            panic!("Couldn't read config.toml file. Check for file validity.")
+            error!("Couldn't read config.toml file. Check for file validity.");
+            Config::default()
         });
-
-        debug!("Created Config Object out of config file");
 
         let (localhost, rx_port, tx_port) = match config.network {
             Some(network) => {
@@ -152,7 +154,7 @@ impl Config {
             }
         };
 
-        debug!("Available data parsed from config");
+        debug!("Parsed all available info from config: {:?}", benchmark.get_elapsed());
 
         Config {
             network: Some(ConfigNetwork {
@@ -171,5 +173,104 @@ impl Config {
         }
     }
 
-   
+    pub fn update_features(&mut self) {
+        let benchmark = cli::Benchmark::new();
+
+        debug!("Reparsing features info...");
+
+        let mut content: String = "".to_string();
+
+        for filepath in CONFIG_FILEPATHS {
+            let result: Result<String, Error> = fs::read_to_string(filepath);
+
+            match result {
+                Ok(data) => {
+                    content = data;
+                    debug!("Successfully read from file: {}", filepath);
+                    break;
+                }
+                Err(e) => {
+                    error!("Failed to read from file {}: {}", filepath, e)
+                }
+            }
+        }
+
+        let config: Config = toml::from_str(&content).unwrap_or_else(|_| {
+            // file got messed up, return default
+            error!("Failed to create Config Object out of config file.");
+            error!("Couldn't read config.toml file. Check for file validity. Setting all config values to default.");
+            Config::default() 
+        });
+
+        let (text, local_time, spotify) = match config.features {
+            Some(features) => {
+                let features_text: String = features.text.unwrap_or_else(|| {
+                    error!("Failed to read local_time -> text from config | Defaulting to ''");
+                    "".to_string()
+                });
+
+                let features_local_time: bool = features.local_time.unwrap_or_else(|| {
+                    error!("Failed to read local_time -> local_time from config | Defaulting to false");
+                    false
+                });
+
+                let features_spotify: bool = features.spotify.unwrap_or_else(|| {
+                    error!("Failed to read features -> spotify from config | Defaulting to false");
+                    false
+                });
+
+                (features_text, features_local_time, features_spotify)
+            }
+            None => {
+                error!("Missing table from config: features | Defaulting to false");
+                ("".to_string(), DEFAULT_LOCAL_TIME, DEFAULT_SPOTIFY)
+            }
+        };
+
+        self.features = Some(ConfigFeatures {
+            text: Some(text),
+            local_time: Some(local_time),
+            spotify: Some(spotify),
+        });
+
+        info!("Features reparsed and updated! Time elapsed: {:?}", benchmark.get_elapsed());
+    }
+}
+
+impl Default for ConfigNetwork {
+    fn default() -> Self {
+        ConfigNetwork {
+            localhost: Some("127.0.0.1".to_string()),
+            rx_port: Some(9001),
+            tx_port: Some(9000),
+        }
+    }
+}
+
+impl Default for ConfigDev {
+    fn default() -> Self {
+        ConfigDev {
+            debug: Some(false),
+        }
+    }
+}
+
+impl Default for ConfigFeatures {
+    fn default() -> Self {
+        ConfigFeatures {
+            text: Some("Placeholder text, no input detected in config.toml".to_string()),
+            local_time: Some(false),
+            spotify: Some(false),
+        }
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            network: Some(ConfigNetwork::default()),
+            features: Some(ConfigFeatures::default()),
+            dev: Some(ConfigDev::default()),
+        }
+    }
 }

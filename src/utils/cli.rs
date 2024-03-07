@@ -1,16 +1,35 @@
+// import logging functionality
 use env_logger::Env;
 
+// time related functionality
 use std::{thread, time};
+use std::time::{Duration, Instant};
 use chrono::{DateTime, Local};
 
 
-// The available log levels, in increasing order of severity, are "trace," "debug," "info," "warn," and "error."
+// the available log levels, in increasing order of severity, are "trace," "debug," "info," "warn," and "error."
 pub fn init_logger(log_level: &'static str) {
     let env = Env::default()
         .filter_or("MY_LOG_LEVEL", log_level) // log level prints the level inputted and above
         .write_style_or("MY_LOG_STYLE", "always");
 
     env_logger::init_from_env(env);
+}
+
+pub struct Benchmark {
+    pub start_time: Instant
+}
+
+impl Benchmark {
+    pub fn new() -> Self {
+        Benchmark {
+            start_time: Instant::now(),
+        }
+    }
+
+    pub fn get_elapsed(&self) -> Duration {
+        return self.start_time.elapsed();
+    }
 }
 
 // sleeps in ms time
